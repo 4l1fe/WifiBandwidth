@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import iperf3
 
 from db import tresults
+from wifi import AccessPoint
 
 
 DURATION = 3
@@ -17,13 +18,9 @@ def utc_timestamp(timesecs):
 
 
 def get_public_servers() -> List:
-    return [('iperf.volia.net', 5201), ]
-    # return [('iperf.worldstream.nl', 5201), ]
+    # return [('iperf.volia.net', 5201), ]
+    return [('speedtest.wtnet.de', 5201), ]
     # return [('iperf.biznetnetworks.com', 5201), ]
-
-
-def get_wifi_networks() -> List:
-    return []
 
 
 @dataclass
@@ -32,10 +29,10 @@ class Bandwidth:
     port: int
     duration: int = DURATION
 
-    def output(self) -> iperf3.TestResult:
+    def output(self):
         return self._run(False)
 
-    def input(self) -> iperf3.TestResult:
+    def input(self):
         return self._run(True)
 
     def _make_client(self):
@@ -58,14 +55,17 @@ def main():
     srv, port = get_public_servers()[0]
     # get_wifi_networks()
     bw = Bandwidth(srv, port)
+    for ap in AccessPoint.list_better(max_count=2):
+        ap.up()
+        print('Test ', ap.ssid, ap.signal_value)
 
-    tr_o = bw.output()
-    tresults.insert(type=T_OUTPUT, json=tr_o.text, uts_timestamp=utc_timestamp(tr_o.timesecs),
-                    sent=tr_o.sent_MB_s, received=tr_o.received_MB_s)
+        tr_o = bw.output()
+        tresults.insert(type=T_OUTPUT, json=tr_o.text, sig_value=ap.signal_value, ssid=ap.ssid)
+        print('Output: ', tr_o.sent_MB_s, tr_o.received_MB_s)
 
-    tr_i = bw.input()
-    tresults.insert(type=T_INPUT, json=tr_i.text, uts_timestamp=utc_timestamp(tr_i.timesecs),
-                    sent=tr_o.sent_MB_s, received=tr_o.received_MB_s)
+        tr_i = bw.input()
+        tresults.insert(type=T_INPUT, json=tr_i.text, sig_value=ap.signal_value, ssid=ap.ssid)
+        print('Input: ', tr_i.sent_MB_s, tr_i.received_MB_s)
 
 
 if __name__ == '__main__':
