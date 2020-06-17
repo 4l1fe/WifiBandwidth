@@ -14,7 +14,7 @@ class AccessPoint:
         self.ssid = ssid
 
     @staticmethod
-    def list_better(min_value=MIN_POWER, max_count=MAX_COUNT):
+    def list_better(min_power=MIN_POWER, max_count=MAX_COUNT):
         cproc = run(AccessPoint.LIST_CMD, text=True, capture_output=True)
         lines = cproc.stdout.splitlines()
         sig_idx = lines[0].index('SIGNAL')
@@ -24,7 +24,7 @@ class AccessPoint:
         for count, line in enumerate(lines[1:], start=1):
             sig_value = int(line[sig_idx: sig_idx + 3])
             ssid_value = line[ssid_idx_s: ssid_idx_e].strip()
-            if sig_value >= min_value:
+            if sig_value >= min_power:
                 access_points.append(AccessPoint(sig_value, ssid_value))
             if count >= max_count:
                 break
