@@ -11,5 +11,9 @@
 5. Measure in/output bandwidths up with iperf3 for 3 sec each.
 
 6. Store results for further examining.
-   
+
 7. Choose a most performable.
+
+# Visualisation
+
+![Chart](files/chart.png)

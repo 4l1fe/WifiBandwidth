@@ -1,8 +1,10 @@
+from json import loads
 from collections import defaultdict
 
 import justpy as jp
 
 from db import tresults
+from bandwidth import T_INPUT, T_OUTPUT
 
 
 CHART_DEF = """
@@ -11,11 +13,11 @@ CHART_DEF = """
             type: 'line'
         },
     title: {
-        text: 'Signal value'
+        text: 'Bandwidth',
     },
     yAxis: {
         title: {
-            text: 'Signal value'
+            text: 'Recv/Sent Mbps'
         }
     },
     xAxis: {
@@ -35,16 +37,26 @@ CHART_DEF = """
 """
 
 
+def to_Mbps(amount):
+    return amount / 1000 / 1000
+
+
 def signal_values():
     data = tresults.all().namedtuples()
     wp = jp.WebPage()
-    chart_in = jp.HighCharts(a=wp, options = CHART_DEF)
-    series = defaultdict(list)
+    chart_in, chart_out = jp.HighCharts(a=wp, options = CHART_DEF), jp.HighCharts(a=wp, options = CHART_DEF)
+    series = defaultdict(lambda : defaultdict(list))
     for row in data:
-        series[row.ssid].append(row.sig_value)
+        if row.ssid in ('Sunny Days 13', 'Sunny Days 3', 'Sunny Days 4', 'Sunny Days 15', 'SmallWall'):
+            pass
+        json = loads(row.json)
+        series[row.type][row.ssid, 'recv'].append(to_Mbps(json['end']['sum_received']['bits_per_second']))
+        series[row.type][row.ssid, 'sent'].append(-to_Mbps(json['end']['sum_sent']['bits_per_second']))
 
-    chart_in.options.xaxis.categories = [row.id for row in data]
-    chart_in.options.series = [{'name': ssid, 'data': values} for ssid, values in series.items()]
+    chart_in.options.subtitle.text = 'Client to server direction'
+    chart_in.options.series = [{'name': (ssid, type), 'data': values} for (ssid, type), values in series[T_INPUT].items()]
+    chart_out.options.subtitle.text = 'Server to client direction'
+    chart_out.options.series = [{'name': (ssid, type), 'data': values} for (ssid, type), values in series[T_OUTPUT].items()]
     return wp
 
 
